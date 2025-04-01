@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: images-processing
+  datasource:
+    url: jdbc:postgresql://localhost:5432/images-processing
+    username: images
+    password: images
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  main:
+      allow-bean-definition-overriding: true
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: larissafalcao.arruda@gmail.com
+    password: senha
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          initial-interval: 3s
+          max-attempts: 3
+          max-interval: 30s
+springdoc:
+  swagger-ui:
+    display-request-duration: true
+    groups-order: DESC
+    operationsSorter: method
+    disable-swagger-default-url: true
+    use-root-path: true
+    path: /docs
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+
+rabbitmq:
+  rabbitmq:
+    exchange:
+      name:
+  queue:
+    images:
+      return:
+        concurrency: 1
+
+default:
+  directory: /images-processing
+
+image:
+  quota: 3
+
+api:
+  security:
+    token:
+      secret: 'Im@G25!'
