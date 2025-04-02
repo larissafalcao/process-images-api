@@ -17,7 +17,7 @@ public class ImageConsumer {
 
     @RabbitListener(
             queues = QUEUE,
-            concurrency = "${rabbitmq.queue.orders.return.concurrency}"
+            concurrency = "${rabbitmq.queue.images.return.concurrency}"
     )
     public void consume(ImageMessage request) {
         log.info("Image processing request received: {}", request);

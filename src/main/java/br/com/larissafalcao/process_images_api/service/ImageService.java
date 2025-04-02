@@ -1,6 +1,7 @@
 package br.com.larissafalcao.process_images_api.service;
 
-import br.com.larissafalcao.process_images_api.ProfileEnum;
+import br.com.larissafalcao.process_images_api.persistence.enumeration.ImageStatusEnum;
+import br.com.larissafalcao.process_images_api.persistence.enumeration.ProfileEnum;
 import br.com.larissafalcao.process_images_api.controller.dto.request.ImageMessage;
 import br.com.larissafalcao.process_images_api.controller.dto.request.ImageRequest;
 import br.com.larissafalcao.process_images_api.controller.dto.response.ImageResponse;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -51,24 +53,29 @@ public class ImageService {
                 throw new ErrorProcessingImageException("Limit of images reached");
             }
         }
-        if(imageEntity.getGrayscaleFilter().equals(Boolean.TRUE)){
+        if(imageEntity.getGrayscaleFilter().equals(Boolean.TRUE) && imageEntity.getResizePercentage() == null){
             applyGrayscaleFilter(imageEntity);
         }
-        if(imageEntity.getResizePercentage() != null){
+        if(imageEntity.getGrayscaleFilter() == null || (imageEntity.getGrayscaleFilter().equals(Boolean.FALSE)) && imageEntity.getResizePercentage() != null){
             processImageResize(imageEntity);
         }
+        emailService.sendEmail(user.getEmail(), "Image processing concluded", "Your image processing is finished");
+
     }
 
     private void applyGrayscaleFilter(ImageEntity imageEntity) {
         try {
-            BufferedImage image = ImageIO.read(new File(imageEntity.getImageName()));
-            if (imageEntity.getGrayscaleFilter()) {
-                image = applyGrayscaleFilter(image);
-            }
-            // Salvar a imagem processada
-            ImageIO.write(image, "jpg", new File("processed_" + imageEntity.getImageName()));
+            BufferedImage image = ImageIO.read(new File(imageEntity.getOriginalImagePath()));
+            image = applyGrayscaleFilter(image);
+            String processedImagePath = defaultDirectory + "processed_" + imageEntity.getImageName();
+            ImageIO.write(image, "jpg", new File(processedImagePath));
+            imageEntity.setProcessedImagePath(processedImagePath);
+            imageEntity.setStatus(ImageStatusEnum.PROCESSED.name());
+            imageRepository.save(imageEntity);
         } catch (IOException e) {
             log.error("Error processing grayscale", e);
+            imageEntity.setStatus(ImageStatusEnum.FAILED.name());
+            imageRepository.save(imageEntity);
             throw new ErrorProcessingImageException("Error processing grayscale");
         }
     }
@@ -84,21 +91,17 @@ public class ImageService {
 
     public void processImageResize(ImageEntity imageEntity) {
         try {
-            BufferedImage image = ImageIO.read(new File(imageEntity.getImageName()));
-            if (imageEntity.getGrayscaleFilter().equals(Boolean.TRUE)) {
-                image = applyGrayscaleFilter(image);
-            }
-            if (imageEntity.getResizePercentage() != null) {
-                image = resizeImage(image, imageEntity.getResizePercentage());
-            }
-            // Salvar a imagem processada
+            BufferedImage image = ImageIO.read(new File(imageEntity.getOriginalImagePath()));
+            image = resizeImage(image, imageEntity.getResizePercentage());
             String processedImagePath = defaultDirectory + "processed_" + imageEntity.getImageName();
             ImageIO.write(image, "jpg", new File(processedImagePath));
             imageEntity.setProcessedImagePath(processedImagePath);
-            imageEntity.setStatus("PROCESSED");
+            imageEntity.setStatus(ImageStatusEnum.PROCESSED.name());
             imageRepository.save(imageEntity);
         } catch (IOException e) {
             log.error("Error processing resize", e);
+            imageEntity.setStatus(ImageStatusEnum.FAILED.name());
+            imageRepository.save(imageEntity);
             throw new ErrorProcessingImageException("Error processing resize");
         }
     }
@@ -113,11 +116,14 @@ public class ImageService {
         return resizedImage;
     }
 
-    public ImageResponse sendImageRequest(ImageRequest imageProcessRequest) {
-        String filePath = defaultDirectory + imageProcessRequest.getFile().getOriginalFilename();
-        final var user = userService.findByLogin(imageProcessRequest.getUserLogin());
+    public ImageResponse sendImageRequest(String userLogin,
+                                          Integer resizePercentage,
+                                          Boolean grayscaleFilter,
+                                          MultipartFile file) {
+        String filePath = defaultDirectory + "/" + file.getOriginalFilename();
+        final var user = userService.findByLogin(userLogin);
         try {
-            imageProcessRequest.getFile().transferTo(new File(filePath));
+            file.transferTo(new File(filePath));
         } catch (IOException e) {
             log.error("Error saving image", e);
             throw new ErrorSavingImageException("Error saving image");
@@ -126,15 +132,16 @@ public class ImageService {
         ImageEntity image = ImageEntity.builder()
                 .userId(user.getId())
                 .requestDateTime(LocalDateTime.now())
-                .imageName(imageProcessRequest.getFile().getOriginalFilename())
-                .resizePercentage(imageProcessRequest.getResizePercentage())
-                .grayscaleFilter(imageProcessRequest.getGrayscaleFilter())
+                .imageName(file.getOriginalFilename() + "_" + LocalDateTime.now())
+                .resizePercentage(resizePercentage)
+                .grayscaleFilter(grayscaleFilter)
                 .originalImagePath(filePath)
-                .status("PENDING")
+                .status(ImageStatusEnum.PENDING.name())
                 .build();
         ImageEntity imageSaved = imageRepository.save(image);
         ImageMessage imageMessage = ImageMessage.builder()
                 .imageId(imageSaved.getImageId())
+                .userLogin(user.getLogin())
                 .build();
         imageProducer.enqueue(imageMessage);
         emailService.sendEmail(user.getEmail(), "Image processing started", "Your image is being processed");

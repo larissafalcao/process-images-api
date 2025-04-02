@@ -24,7 +24,7 @@ import java.util.Objects;
 @NoArgsConstructor
 @ToString
 @Getter
-@Table(name = "user")
+@Table(name = "tb_user")
 @Entity
 public class UserEntity implements UserDetails {
     @Id
@@ -32,7 +32,7 @@ public class UserEntity implements UserDetails {
     @Column(name="id")
     private Long id;
 
-    @Column(name="nome")
+    @Column(name="name")
     private String name;
 
     @Column(name="login")

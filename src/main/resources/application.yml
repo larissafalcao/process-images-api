@@ -12,6 +12,10 @@ spring:
     show-sql: true
   main:
       allow-bean-definition-overriding: true
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 200MB
   mail:
     host: smtp.gmail.com
     port: 587
@@ -60,12 +64,13 @@ rabbitmq:
         concurrency: 1
 
 default:
-  directory: /images-processing
+  directory: /Users/larissafalcao/images-processing
 
 image:
-  quota: 3
+  quota: 10
 
 api:
   security:
     token:
       secret: 'Im@G25!'
+

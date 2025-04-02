@@ -15,7 +15,6 @@ public class ImageRequest {
     @NotBlank
     private String userLogin;
 
-    @NotNull
     private Integer resizePercentage;
 
     private Boolean grayscaleFilter;

@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface ImageOpenApi {
 
@@ -15,5 +16,8 @@ public interface ImageOpenApi {
             @ApiResponse(responseCode = "500", description = "Internal server error"),
             @ApiResponse(responseCode = "400", description = "Invalid data provided"),
     })
-    ResponseEntity<ImageResponse> processImage(ImageRequest imageRequest);
+    ResponseEntity<ImageResponse> processImage(String userLogin,
+                                               Integer resizePercentage,
+                                               Boolean grayscaleFilter,
+                                               MultipartFile file);
 }
