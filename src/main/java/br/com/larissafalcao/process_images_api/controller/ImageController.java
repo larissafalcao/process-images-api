@@ -25,7 +25,7 @@ public class ImageController implements ImageOpenApi {
     public ResponseEntity<ImageResponse> processImage(@RequestHeader String userLogin,
                                                       @RequestParam(required = false) Integer resizePercentage,
                                                       @RequestParam(required = false) Boolean grayscaleFilter,
-                                                      @RequestPart MultipartFile arquivo) {
-        return ResponseEntity.ok(imageService.sendImageRequest(userLogin, resizePercentage, grayscaleFilter, arquivo));
+                                                      @RequestPart MultipartFile file) {
+        return ResponseEntity.ok(imageService.sendImageRequest(userLogin, resizePercentage, grayscaleFilter, file));
     }
 }
