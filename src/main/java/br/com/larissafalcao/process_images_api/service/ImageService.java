@@ -53,7 +53,7 @@ public class ImageService {
                 throw new ErrorProcessingImageException("Limit of images reached");
             }
         }
-        if(imageEntity.getGrayscaleFilter().equals(Boolean.TRUE) && imageEntity.getResizePercentage() == null){
+        if((imageEntity.getGrayscaleFilter() != null && imageEntity.getGrayscaleFilter().equals(Boolean.TRUE)) && imageEntity.getResizePercentage() == null){
             applyGrayscaleFilter(imageEntity);
         }
         if(imageEntity.getGrayscaleFilter() == null || (imageEntity.getGrayscaleFilter().equals(Boolean.FALSE)) && imageEntity.getResizePercentage() != null){
@@ -67,7 +67,7 @@ public class ImageService {
         try {
             BufferedImage image = ImageIO.read(new File(imageEntity.getOriginalImagePath()));
             image = applyGrayscaleFilter(image);
-            String processedImagePath = defaultDirectory + "processed_" + imageEntity.getImageName();
+            String processedImagePath = defaultDirectory + "/" + "processed_" + imageEntity.getOriginalImagePath().split("/")[4];
             ImageIO.write(image, "jpg", new File(processedImagePath));
             imageEntity.setProcessedImagePath(processedImagePath);
             imageEntity.setStatus(ImageStatusEnum.PROCESSED.name());
@@ -93,7 +93,7 @@ public class ImageService {
         try {
             BufferedImage image = ImageIO.read(new File(imageEntity.getOriginalImagePath()));
             image = resizeImage(image, imageEntity.getResizePercentage());
-            String processedImagePath = defaultDirectory + "processed_" + imageEntity.getImageName();
+            String processedImagePath = defaultDirectory + "/" + "processed_" + imageEntity.getOriginalImagePath().split("/")[4];
             ImageIO.write(image, "jpg", new File(processedImagePath));
             imageEntity.setProcessedImagePath(processedImagePath);
             imageEntity.setStatus(ImageStatusEnum.PROCESSED.name());
@@ -107,8 +107,8 @@ public class ImageService {
     }
 
     private BufferedImage resizeImage(BufferedImage originalImage, int percentage) {
-        int newWidth = originalImage.getWidth() * percentage / 100;
-        int newHeight = originalImage.getHeight() * percentage / 100;
+        int newWidth = originalImage.getWidth() / percentage;
+        int newHeight = originalImage.getHeight() / percentage;
         BufferedImage resizedImage = new BufferedImage(newWidth, newHeight, originalImage.getType());
         Graphics2D g = resizedImage.createGraphics();
         g.drawImage(originalImage, 0, 0, newWidth, newHeight, null);
